@@ -1,79 +1,102 @@
 package jp.ac.fjb.x15g020.opencv_test;
 
-import android.app.Activity;
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.util.Log;
-import android.view.ViewGroup;
-
+import org.opencv.android.BaseLoaderCallback;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
+import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Mat;
+import org.opencv.android.CameraBridgeViewBase;
+import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import android.app.Activity;
+import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.SurfaceView;
+import android.view.WindowManager;
+import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener {
+    private static final String TAG = "OCVSample::Activity";
 
-    static{
-        System.loadLibrary("opencv_java");
+    private CameraBridgeViewBase mOpenCvCameraView;
+    private boolean              mIsJavaCamera = true;
+    private MenuItem             mItemSwitchCamera = null;
+
+    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
+        @Override
+        public void onManagerConnected(int status) {
+            switch (status) {
+                case LoaderCallbackInterface.SUCCESS:
+                {
+                    Log.i(TAG, "OpenCV loaded successfully");
+                    mOpenCvCameraView.enableView();
+                } break;
+                default:
+                {
+                    super.onManagerConnected(status);
+                } break;
+            }
+        }
+    };
+
+    public MainActivity() {
+        Log.i(TAG, "Instantiated new " + this.getClass());
+    }
+
+    /** Called when the activity is first created. */
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        Log.i(TAG, "called onCreate");
+        super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        setContentView(R.layout.activity_main);
+
+        mOpenCvCameraView = (CameraBridgeViewBase) findViewById(R.id.tutorial1_activity_java_surface_view);
+
+        mOpenCvCameraView.setVisibility(SurfaceView.VISIBLE);
+
+        mOpenCvCameraView.setCvCameraViewListener(this);
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-
-//        if (!OpenCVLoader.initDebug()) {
-//            Log.i("OpenCV", "Failed");
-//        } else {
-//            Log.i("OpenCV", "successfully built !");
-//        }
-
-
-        try {
-            copyAssets("haarascades");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        CameraView cameraView = new CameraView(this,90);
-
-        ViewGroup activityMain =(ViewGroup)findViewById(R.id.activity_main);
-        activityMain.addView(cameraView);
-
-
+    public void onPause()
+    {
+        super.onPause();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
     }
 
-    private void copyAssets(String dir)throws IOException{
-        byte[] buf = new byte[8192];
-        int size;
-
-        File dst = new File(getCacheDir(),dir);
-        if(!dst.exists()){
-            dst.mkdirs();
-            dst.setReadable(true,false);
-            dst.setWritable(true,false);
-            dst.setExecutable(true,false);
+    @Override
+    public void onResume()
+    {
+        super.onResume();
+        if (!OpenCVLoader.initDebug()) {
+            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
+            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
+        } else {
+            Log.d(TAG, "OpenCV library found inside package. Using it!");
+            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
+    }
 
-        for(String filename:getAssets().list(dir)){
-            File file = new File(dst,filename);
-            OutputStream out = new FileOutputStream(file);
-            InputStream in = getAssets().open(dir+"/"+filename);
-            while ((size=in.read(buf))>=0){
-                if(size > 0){
-                    out.write(buf,0,size);
-                }
-            }
-            in.close();
-            out.close();
-            file.setReadable(true,false);
-            file.setWritable(true,false);
-            file.setExecutable(true,false);
-        }
+    public void onDestroy() {
+        super.onDestroy();
+        if (mOpenCvCameraView != null)
+            mOpenCvCameraView.disableView();
+    }
+
+    public void onCameraViewStarted(int width, int height) {
+    }
+
+    public void onCameraViewStopped() {
+    }
+
+    public Mat onCameraFrame(Mat inputFrame) {
+        return inputFrame;
     }
 
 }
