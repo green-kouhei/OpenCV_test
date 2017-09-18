@@ -4,9 +4,12 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.CameraBridgeViewBase.CvCameraViewListener2;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
 
 import android.app.Activity;
 import android.os.Bundle;
@@ -95,8 +98,24 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     public void onCameraViewStopped() {
     }
 
+//    public Mat onCameraFrame(Mat inputFrame) {
+//        return inputFrame;
+//    }
+
+    //色抽出
     public Mat onCameraFrame(Mat inputFrame) {
-        return inputFrame;
+        Mat src = inputFrame;//入力画像
+        int CV_8U = 0;
+        Mat dst = Mat.zeros(inputFrame.width(),inputFrame.height(),CV_8U);//初期化
+        Imgproc.cvtColor(src, dst, Imgproc.COLOR_RGB2HSV);//HSVに変換
+
+        Mat src2 = dst;//HSV画像を代入
+        Mat dst2 = Mat.zeros(inputFrame.width(),inputFrame.height(),CV_8U);//初期化
+        Scalar low = new Scalar( 0,70,90);//下限(H,S,V)
+        Scalar high = new Scalar(35,255,255);//上限(H,S,V)
+        Core.inRange( src2,  low,  high , dst2);//肌色抽出
+
+        return dst2;
     }
 
 }
